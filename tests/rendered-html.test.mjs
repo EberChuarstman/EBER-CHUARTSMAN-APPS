@@ -4,7 +4,7 @@ import test from "node:test";
 
 const testPassword = randomBytes(24).toString("base64url");
 const testSalt = randomBytes(16);
-const testIterations = 150_000;
+const testIterations = 100_000;
 const testPasswordHash = pbkdf2Sync(testPassword, testSalt, testIterations, 32, "sha256");
 
 const testEnv = {
