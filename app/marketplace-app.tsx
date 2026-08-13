@@ -22,7 +22,7 @@ type Product = {
 };
 
 type View = "home" | "library" | "producer" | "admin";
-type Dialog = "signin" | "apply" | "upload" | "checkout" | "success" | "draft" | null;
+type Dialog = "signin" | "admin-login" | "apply" | "upload" | "checkout" | "success" | "draft" | null;
 
 const products: Product[] = [
   {
@@ -193,7 +193,7 @@ function ProductCover({ product, compact = false }: { product: Product; compact?
   );
 }
 
-function Header({ view, navigate, openDialog }: { view: View; navigate: (next: View, anchor?: string) => void; openDialog: (dialog: Dialog) => void }) {
+function Header({ view, navigate, openDialog, logoutAdmin }: { view: View; navigate: (next: View, anchor?: string) => void; openDialog: (dialog: Dialog) => void; logoutAdmin: () => void }) {
   return (
     <header className="site-header">
       <Brand onClick={() => navigate("home", "#top")} />
@@ -205,7 +205,7 @@ function Header({ view, navigate, openDialog }: { view: View; navigate: (next: V
         {view === "admin" && <button className="nav-active" type="button" onClick={() => navigate("admin")}>Administração</button>}
       </nav>
       {view === "admin" ? (
-        <div className="header-actions admin-session"><span><i>◆</i> Administrador</span><button className="text-button" type="button" onClick={() => navigate("home", "#top")}>Sair</button></div>
+        <div className="header-actions admin-session"><span><i>◆</i> Administrador</span><button className="text-button" type="button" onClick={logoutAdmin}>Sair</button></div>
       ) : (
         <div className="header-actions">
           <button className="text-button" type="button" onClick={() => openDialog("signin")}>Entrar</button>
@@ -480,8 +480,59 @@ function ProductDialog({ product, close, checkout }: { product: Product; close: 
   );
 }
 
-function SigninDialog({ close, navigate }: { close: () => void; navigate: (view: View) => void }) {
-  return <ModalShell close={close} label="Entrar na SaúdeHub" size="small"><div className="simple-dialog"><span className="dialog-mark">SH</span><span className="demo-pill">DEMONSTRAÇÃO</span><h2>Bem-vindo à SaúdeHub</h2><p>Escolha uma área para conhecer a experiência da plataforma.</p><button className="role-option" type="button" onClick={() => navigate("library")}><span>▶</span><div><b>Entrar como aluno</b><small>Acesse cursos e materiais adquiridos</small></div><ArrowIcon /></button><button className="role-option" type="button" onClick={() => navigate("producer")}><span>▥</span><div><b>Entrar como produtor</b><small>Gerencie conteúdos e acompanhe vendas</small></div><ArrowIcon /></button><button className="role-option role-option-admin" type="button" onClick={() => navigate("admin")}><span>◆</span><div><b>Entrar como administrador</b><small>Controle financeiro, repasses e aprovações</small></div><ArrowIcon /></button><small className="dialog-disclaimer">Na versão comercial, o acesso será protegido por login e permissões.</small></div></ModalShell>;
+function SigninDialog({ close, navigate, openAdminLogin }: { close: () => void; navigate: (view: "library" | "producer") => void; openAdminLogin: () => void }) {
+  return <ModalShell close={close} label="Entrar na SaúdeHub" size="small"><div className="simple-dialog"><span className="dialog-mark">SH</span><span className="demo-pill">DEMONSTRAÇÃO</span><h2>Bem-vindo à SaúdeHub</h2><p>Escolha uma área para conhecer a experiência da plataforma.</p><button className="role-option" type="button" onClick={() => navigate("library")}><span>▶</span><div><b>Entrar como aluno</b><small>Acesse cursos e materiais adquiridos</small></div><ArrowIcon /></button><button className="role-option" type="button" onClick={() => navigate("producer")}><span>▥</span><div><b>Entrar como produtor</b><small>Gerencie conteúdos e acompanhe vendas</small></div><ArrowIcon /></button><button className="role-option role-option-admin" type="button" onClick={openAdminLogin}><span>◆</span><div><b>Entrar como administrador</b><small>Acesso protegido por usuário e senha</small></div><ArrowIcon /></button><small className="dialog-disclaimer">O painel administrativo possui autenticação própria e sessão segura.</small></div></ModalShell>;
+}
+
+function AdminLoginDialog({ close, authenticated }: { close: () => void; authenticated: () => void }) {
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPending(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = await response.json() as { authenticated?: boolean; error?: string };
+      if (!response.ok || !result.authenticated) {
+        setError(result.error ?? "Não foi possível validar o acesso.");
+        return;
+      }
+      authenticated();
+    } catch {
+      setError("Não foi possível conectar ao servidor. Tente novamente.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <ModalShell close={close} label="Login administrativo" size="small">
+      <form className="form-dialog admin-login-dialog" onSubmit={submit}>
+        <span className="admin-login-mark" aria-hidden="true">◆</span>
+        <span className="section-kicker">ÁREA RESTRITA</span>
+        <h2>Login do administrador</h2>
+        <p>Informe as credenciais administrativas para visualizar valores, repasses e aprovações.</p>
+        <div className="form-grid admin-login-fields">
+          <label className="full-field"><span>Usuário</span><input autoFocus required autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} disabled={pending} /></label>
+          <label className="full-field"><span>Senha</span><span className="password-field"><input required autoComplete="current-password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} disabled={pending} /><button type="button" onClick={() => setShowPassword((current) => !current)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>{showPassword ? "Ocultar" : "Mostrar"}</button></span></label>
+        </div>
+        {error && <div className="admin-login-error" role="alert" aria-live="polite"><span>!</span>{error}</div>}
+        <button className="button button-primary form-submit" type="submit" disabled={pending}>{pending ? "Validando…" : <>Entrar no painel <ArrowIcon /></>}</button>
+        <small className="admin-security-note">🔒 Sessão protegida por cookie seguro e encerrada após 8 horas.</small>
+      </form>
+    </ModalShell>
+  );
 }
 
 function ApplicationDialog({ close, done }: { close: () => void; done: () => void }) {
@@ -511,6 +562,7 @@ export default function MarketplaceApp() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [purchased, setPurchased] = useState<number[]>([]);
+  const [adminAuthenticated, setAdminAuthenticated] = useState(false);
 
   const visibleProducts = useMemo(() => {
     const term = query.trim().toLocaleLowerCase("pt-BR");
@@ -522,7 +574,19 @@ export default function MarketplaceApp() {
   }, [category, query]);
 
   const closeModal = () => { setDialog(null); setSelectedProduct(null); };
+  const openAdminLogin = () => { setSelectedProduct(null); setDialog("admin-login"); };
+  const enterAdmin = () => {
+    closeModal();
+    setAdminAuthenticated(true);
+    setView("admin");
+    window.history.replaceState(null, "", "#admin");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const navigate = (next: View, anchor?: string) => {
+    if (next === "admin" && !adminAuthenticated) {
+      openAdminLogin();
+      return;
+    }
     closeModal();
     setView(next);
     const destination = next === "admin" ? "#admin" : next === "producer" ? "#produtor" : next === "library" ? "#biblioteca" : anchor ?? "#top";
@@ -533,12 +597,33 @@ export default function MarketplaceApp() {
 
   useEffect(() => {
     const destination = window.location.hash;
+    let active = true;
     const frame = window.requestAnimationFrame(() => {
-      if (destination === "#admin") setView("admin");
       if (destination === "#produtor") setView("producer");
       if (destination === "#biblioteca") setView("library");
     });
-    return () => window.cancelAnimationFrame(frame);
+
+    if (destination === "#admin") {
+      fetch("/api/admin/session", { credentials: "same-origin", cache: "no-store" })
+        .then((response) => response.json())
+        .then((result: { authenticated?: boolean }) => {
+          if (!active) return;
+          if (result.authenticated) {
+            setAdminAuthenticated(true);
+            setView("admin");
+          } else {
+            window.history.replaceState(null, "", "#top");
+            setDialog("admin-login");
+          }
+        })
+        .catch(() => {
+          if (!active) return;
+          window.history.replaceState(null, "", "#top");
+          setDialog("admin-login");
+        });
+    }
+
+    return () => { active = false; window.cancelAnimationFrame(frame); };
   }, []);
 
   useEffect(() => {
@@ -554,17 +639,30 @@ export default function MarketplaceApp() {
     setDialog("success");
   };
 
+  const logoutAdmin = async () => {
+    try {
+      await fetch("/api/admin/logout", { method: "POST", credentials: "same-origin" });
+    } finally {
+      setAdminAuthenticated(false);
+      closeModal();
+      setView("home");
+      window.history.replaceState(null, "", "#top");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   return (
     <main>
-      <Header view={view} navigate={navigate} openDialog={setDialog} />
+      <Header view={view} navigate={navigate} openDialog={setDialog} logoutAdmin={logoutAdmin} />
       {view === "home" && <HomeView query={query} setQuery={setQuery} category={category} setCategory={setCategory} visibleProducts={visibleProducts} openProduct={setSelectedProduct} openDialog={setDialog} />}
       {view === "library" && <LibraryView purchased={purchased} openProduct={setSelectedProduct} />}
       {view === "producer" && <ProducerView openDialog={setDialog} />}
-      {view === "admin" && <AdminView />}
+      {view === "admin" && adminAuthenticated && <AdminView />}
       <Footer navigate={navigate} />
 
       {selectedProduct && !dialog && <ProductDialog product={selectedProduct} close={closeModal} checkout={() => setDialog("checkout")} />}
-      {dialog === "signin" && <SigninDialog close={closeModal} navigate={(next) => navigate(next)} />}
+      {dialog === "signin" && <SigninDialog close={closeModal} navigate={(next) => navigate(next)} openAdminLogin={openAdminLogin} />}
+      {dialog === "admin-login" && <AdminLoginDialog close={closeModal} authenticated={enterAdmin} />}
       {dialog === "apply" && <ApplicationDialog close={closeModal} done={() => setDialog("draft")} />}
       {dialog === "upload" && <UploadDialog close={closeModal} done={() => setDialog("draft")} />}
       {dialog === "checkout" && selectedProduct && <CheckoutDialog product={selectedProduct} close={closeModal} complete={completePurchase} />}

@@ -502,6 +502,17 @@ footer > small { grid-column: 1 / -1; padding-top: 18px; border-top: 1px solid #
 .form-grid textarea { resize: vertical; }
 .full-field { grid-column: 1 / -1; }
 .form-submit { width: 100%; margin-top: 17px; }
+.admin-login-dialog { text-align: center; }
+.admin-login-dialog > .section-kicker { margin-bottom: 7px; }
+.admin-login-mark { width: 52px; height: 52px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 15px; background: var(--navy); color: var(--mint); font-size: 15px; box-shadow: 0 12px 25px rgba(8, 41, 47, .2); }
+.admin-login-fields { margin-top: 22px; text-align: left; }
+.password-field { margin: 0 !important; display: flex !important; align-items: stretch; position: relative; }
+.password-field input { padding-right: 74px; }
+.password-field button { padding: 0 12px; position: absolute; right: 1px; top: 1px; bottom: 1px; border: 0; border-left: 1px solid var(--line); border-radius: 0 9px 9px 0; background: #f5f8f7; color: var(--teal); font-size: 8px; font-weight: 750; cursor: pointer; }
+.admin-login-error { margin-top: 13px; padding: 11px 12px; display: flex; align-items: flex-start; gap: 8px; border: 1px solid #f1b9b1; border-radius: 10px; background: #fff2f0; color: #9a3d31; text-align: left; font-size: 9px; line-height: 1.45; }
+.admin-login-error span { width: 17px; height: 17px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; background: #c75749; color: white; font-size: 8px; font-weight: 800; }
+.admin-security-note { margin-top: 13px; display: block; color: #829394; font-size: 8px; line-height: 1.5; }
+.admin-login-dialog .form-submit:disabled { opacity: .65; cursor: wait; }
 .upload-zone { min-height: 115px; padding: 19px; display: grid; place-items: center; border: 1px dashed #9fc8c1; border-radius: 12px; background: #f5faf8; color: #698082; position: relative; text-align: center; }
 .upload-zone > span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; background: #e0f2ed; color: var(--teal); font-size: 16px; }
 .upload-zone b { font-size: 10px; }
@@ -538,6 +549,7 @@ footer > small { grid-column: 1 / -1; padding-top: 18px; border-top: 1px solid #
   .site-header { min-height: 68px; }
   .desktop-nav { display: none; }
   .text-button { display: none; }
+  .admin-session .text-button { display: inline-flex; }
   .hero { grid-template-columns: 1fr; padding-top: 65px; padding-bottom: 105px; }
   .hero-copy { text-align: center; margin: 0 auto; }
   .eyebrow { margin: 0 auto; }
