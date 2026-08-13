@@ -1,0 +1,37 @@
+name: Publicar APK Android
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "public/downloads/SaudeHub-Android-v1.0.0.apk"
+      - ".github/workflows/publish-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Criar versão v1.0.0
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o projeto
+        uses: actions/checkout@v4
+
+      - name: Publicar instalador
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: v1.0.0
+          RELEASE_ASSET: public/downloads/SaudeHub-Android-v1.0.0.apk
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$RELEASE_ASSET" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" "$RELEASE_ASSET" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "SaúdeHub Android v1.0.0" \
+              --notes "Primeira versão Android do SaúdeHub. Aplicativo conectado à plataforma para acesso ao marketplace, biblioteca, painel do produtor e administração." \
+              --latest
+          fi
