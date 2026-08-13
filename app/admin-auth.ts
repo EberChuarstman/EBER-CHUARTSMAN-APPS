@@ -12,6 +12,10 @@ type RuntimeEnv = {
   ADMIN_SESSION_SECRET?: string;
 };
 
+type RuntimeGlobal = typeof globalThis & {
+  __SAUDEHUB_RUNTIME_ENV__?: RuntimeEnv;
+};
+
 type AdminSession = {
   v: 1;
   sub: string;
@@ -33,12 +37,11 @@ export class AdminAuthConfigurationError extends Error {
   }
 }
 
-async function getRuntimeConfig() {
-  const { env } = await import("cloudflare:workers");
-  const runtimeEnv = env as unknown as RuntimeEnv;
-  const username = runtimeEnv.ADMIN_USERNAME?.trim();
-  const passwordRecord = runtimeEnv.ADMIN_PASSWORD_RECORD?.trim();
-  const sessionSecret = runtimeEnv.ADMIN_SESSION_SECRET?.trim();
+function getRuntimeConfig() {
+  const runtimeEnv = (globalThis as RuntimeGlobal).__SAUDEHUB_RUNTIME_ENV__;
+  const username = runtimeEnv?.ADMIN_USERNAME?.trim();
+  const passwordRecord = runtimeEnv?.ADMIN_PASSWORD_RECORD?.trim();
+  const sessionSecret = runtimeEnv?.ADMIN_SESSION_SECRET?.trim();
 
   if (!username || !passwordRecord || !sessionSecret || sessionSecret.length < 32) {
     throw new AdminAuthConfigurationError();
@@ -97,7 +100,7 @@ async function hmac(value: string, secret: string) {
 }
 
 async function createSignedToken(payload: AdminSession | AdminAttempts) {
-  const { sessionSecret } = await getRuntimeConfig();
+  const { sessionSecret } = getRuntimeConfig();
   const encodedPayload = toBase64Url(encoder.encode(JSON.stringify(payload)));
   const signature = toBase64Url(await hmac(encodedPayload, sessionSecret));
   return `${encodedPayload}.${signature}`;
@@ -106,7 +109,7 @@ async function createSignedToken(payload: AdminSession | AdminAttempts) {
 async function readSignedToken<T extends AdminSession | AdminAttempts>(token: string | undefined) {
   if (!token) return null;
 
-  const { sessionSecret } = await getRuntimeConfig();
+  const { sessionSecret } = getRuntimeConfig();
 
   try {
     const [encodedPayload, encodedSignature, ...extra] = token.split(".");
@@ -125,7 +128,7 @@ async function readSignedToken<T extends AdminSession | AdminAttempts>(token: st
 }
 
 export async function verifyAdminCredentials(username: string, password: string) {
-  const { username: configuredUsername, passwordRecord } = await getRuntimeConfig();
+  const { username: configuredUsername, passwordRecord } = getRuntimeConfig();
   const [prefix, iterationText, saltText, expectedText, ...extra] = passwordRecord.split("$");
   const iterations = Number(iterationText);
 
@@ -147,7 +150,7 @@ export async function verifyAdminCredentials(username: string, password: string)
 }
 
 export async function createAdminSessionToken() {
-  const { username } = await getRuntimeConfig();
+  const { username } = getRuntimeConfig();
   return createSignedToken({
     v: 1,
     sub: username,

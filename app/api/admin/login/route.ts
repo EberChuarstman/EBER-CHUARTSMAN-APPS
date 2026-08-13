@@ -79,6 +79,10 @@ export async function POST(request: Request) {
     if (error instanceof AdminAuthConfigurationError) {
       return json({ error: "O acesso administrativo ainda não foi configurado." }, 503);
     }
-    return json({ error: "Não foi possível validar o acesso agora." }, 400);
+    console.error("Admin login validation failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown failure",
+    });
+    return json({ error: "Não foi possível validar o acesso agora." }, 500);
   }
 }

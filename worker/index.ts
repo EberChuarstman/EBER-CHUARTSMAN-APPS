@@ -4,8 +4,11 @@ import handler from "vinext/server/app-router-entry";
 
 interface Env {
   ASSETS: Fetcher;
-  DB: D1Database;
-  IMAGES: {
+  ADMIN_USERNAME?: string;
+  ADMIN_PASSWORD_RECORD?: string;
+  ADMIN_SESSION_SECRET?: string;
+  DB?: D1Database;
+  IMAGES?: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
         output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
@@ -27,9 +30,18 @@ interface ExecutionContext {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    (globalThis as typeof globalThis & {
+      __SAUDEHUB_RUNTIME_ENV__?: Pick<Env, "ADMIN_USERNAME" | "ADMIN_PASSWORD_RECORD" | "ADMIN_SESSION_SECRET">;
+    }).__SAUDEHUB_RUNTIME_ENV__ = {
+      ADMIN_USERNAME: env.ADMIN_USERNAME,
+      ADMIN_PASSWORD_RECORD: env.ADMIN_PASSWORD_RECORD,
+      ADMIN_SESSION_SECRET: env.ADMIN_SESSION_SECRET,
+    };
+
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {
+      if (!env.IMAGES) return new Response("Image binding unavailable", { status: 503 });
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
         fetchAsset: (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))),
