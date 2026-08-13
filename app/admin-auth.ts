@@ -5,6 +5,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const SESSION_DURATION_SECONDS = 8 * 60 * 60;
 const PASSWORD_RECORD_PREFIX = "pbkdf2-sha256";
+const SUPPORTED_PASSWORD_ITERATIONS = 100_000;
 
 type RuntimeEnv = {
   ADMIN_USERNAME?: string;
@@ -135,7 +136,7 @@ export async function verifyAdminCredentials(username: string, password: string)
   if (
     prefix !== PASSWORD_RECORD_PREFIX ||
     !Number.isInteger(iterations) ||
-    iterations < 100_000 ||
+    iterations !== SUPPORTED_PASSWORD_ITERATIONS ||
     !saltText ||
     !expectedText ||
     extra.length > 0
